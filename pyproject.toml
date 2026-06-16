@@ -39,6 +39,7 @@ train = { cmd = "uv run python src/wandb_demo/train.py", help = "Run a single tr
 sweep = { cmd = "uv run python src/wandb_demo/sweep.py", help = "Run hyperparameter sweep (15 runs)" }
 test      = { cmd = "uv run pytest -m 'not e2e'", help = "Run offline unit tests" }
 test-e2e  = { cmd = "docker compose up -d --wait && (uv run pytest -m e2e; rc=$?; docker compose down; exit $rc)", help = "Start W&B, run E2E BDD tests, stop W&B" }
+test-e2e-watch = { cmd = "docker compose up -d --wait && (uv run pytest -m e2e --headed --slowmo 500; rc=$?; docker compose down; exit $rc)", help = "Run E2E tests in headed browser with 500ms slowmo" }
 lint      = { cmd = "uv run ruff check . && uv run mypy src", help = "Lint and type-check" }
 
 [tool.ruff]
