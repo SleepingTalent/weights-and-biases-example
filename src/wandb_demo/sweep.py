@@ -5,9 +5,9 @@ from __future__ import annotations
 import os
 from typing import Any
 
-import wandb
 from dotenv import load_dotenv
 
+import wandb
 from wandb_demo.data import prepare_dataset
 from wandb_demo.train import fit_and_log
 
@@ -37,7 +37,13 @@ def sweep_train() -> None:
     dataset = prepare_dataset(ticker, lookback_years)
 
     with wandb.init(project=project) as run:
-        fit_and_log(run, dataset["X_train"], dataset["X_test"], dataset["y_train"], dataset["y_test"])
+        fit_and_log(
+            run,
+            dataset["X_train"],
+            dataset["X_test"],
+            dataset["y_train"],
+            dataset["y_test"],
+        )
 
 
 if __name__ == "__main__":

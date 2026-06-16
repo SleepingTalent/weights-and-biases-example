@@ -6,11 +6,11 @@ import os
 import tempfile
 from typing import Any
 
-import wandb
 import xgboost as xgb
 from dotenv import load_dotenv
 from sklearn.metrics import accuracy_score, log_loss
 
+import wandb
 from wandb_demo.data import prepare_dataset
 
 DEFAULT_CONFIG: dict[str, Any] = {
@@ -35,15 +35,23 @@ class _WandbCallback(xgb.callback.TrainingCallback):
         for dataset, metric_dict in evals_log.items():
             prefix = "train" if dataset == "validation_0" else "val"
             for metric_name, values in metric_dict.items():
+                raw = values[-1]
+                scalar: float = raw[0] if isinstance(raw, tuple) else raw
                 if metric_name == "error":
-                    metrics[f"{prefix}_accuracy"] = 1.0 - values[-1]
+                    metrics[f"{prefix}_accuracy"] = 1.0 - scalar
                 else:
-                    metrics[f"{prefix}_{metric_name}"] = values[-1]
+                    metrics[f"{prefix}_{metric_name}"] = scalar
         wandb.log(metrics, step=epoch)
         return False
 
 
-def fit_and_log(run: wandb.sdk.wandb_run.Run, X_train: Any, X_test: Any, y_train: Any, y_test: Any) -> None:
+def fit_and_log(
+    run: wandb.sdk.wandb_run.Run,
+    X_train: Any,
+    X_test: Any,
+    y_train: Any,
+    y_test: Any,
+) -> None:
     """Fit XGBClassifier and log all metrics and artifact to an active W&B run.
 
     Shared by both the standalone train() and the sweep agent's sweep_train().
@@ -96,7 +104,13 @@ def train(config: dict[str, Any]) -> None:
     dataset = prepare_dataset(ticker, lookback_years)
 
     with wandb.init(project=project, config=config) as run:
-        fit_and_log(run, dataset["X_train"], dataset["X_test"], dataset["y_train"], dataset["y_test"])
+        fit_and_log(
+            run,
+            dataset["X_train"],
+            dataset["X_test"],
+            dataset["y_train"],
+            dataset["y_test"],
+        )
 
 
 if __name__ == "__main__":
