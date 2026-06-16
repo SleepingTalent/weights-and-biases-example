@@ -96,6 +96,19 @@ weights-biases-example/
   README.md
 ```
 
+## Local W&B account
+
+The local instance has one admin account pre-configured:
+
+| Field | Value |
+|---|---|
+| URL | [http://localhost:8080](http://localhost:8080) |
+| Username | `jamesfairbairn` |
+| Email | `jaybono30@googlemail.com` |
+| Password | `WandbDemo1234!` |
+
+The API key for this account is stored in `.env` (gitignored — never committed). To retrieve or rotate it, log in and visit [http://localhost:8080/authorize](http://localhost:8080/authorize).
+
 ## Configuration
 
 All config is via `.env` (copy from `.env.example`):
