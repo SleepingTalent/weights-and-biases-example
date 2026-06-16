@@ -9,7 +9,9 @@ Built as a portfolio artifact to demonstrate local MLOps experiment tracking, ar
 - [Docker](https://docs.docker.com/get-docker/) and Docker Compose
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) (Python package manager)
 
-## Quickstart
+## First-time setup
+
+Follow these steps once before running any experiments.
 
 ### 1. Install dependencies
 
@@ -17,7 +19,7 @@ Built as a portfolio artifact to demonstrate local MLOps experiment tracking, ar
 uv sync
 ```
 
-### 2. Configure environment
+### 2. Create your environment file
 
 ```bash
 cp .env.example .env
@@ -29,13 +31,39 @@ cp .env.example .env
 uv run task up
 ```
 
-Visit [http://localhost:8080](http://localhost:8080) and create a local account. Once logged in, go to **Settings → API keys** and copy your key into `.env`:
+This pulls the `wandb/local` Docker image and starts it at [http://localhost:8080](http://localhost:8080). The named volume `wandb-demo-data` means your experiments persist between restarts.
+
+### 4. Create a local account
+
+Visit [http://localhost:8080](http://localhost:8080) in your browser and click **Log in**. On the signup page, fill in your name, email, username, and a password, accept the terms, and click **Continue**.
+
+> An existing account is already set up — see the [Local W&B account](#local-wb-account) section below for credentials.
+
+### 5. Retrieve your API key
+
+After logging in, navigate to:
+
+```
+http://localhost:8080/authorize
+```
+
+Click **Generate new API key**. A key will be displayed — **copy it now**, as it is only shown once in full.
+
+### 6. Add the API key to `.env`
+
+Open `.env` and paste the key:
 
 ```
 WANDB_API_KEY=your-api-key-here
 ```
 
-### 4. Run a training experiment
+Your `.env` is gitignored and will never be committed. To rotate the key later, return to [http://localhost:8080/authorize](http://localhost:8080/authorize).
+
+---
+
+## Running experiments
+
+### Run a training experiment
 
 ```bash
 uv run task train
@@ -43,7 +71,7 @@ uv run task train
 
 Fetches 5 years of SPY daily OHLCV data from Yahoo Finance, engineers features (rolling returns, RSI, volume ratio), trains an XGBoost binary classifier, and logs params, per-round metrics, and a model artifact to W&B.
 
-### 5. Run a hyperparameter sweep
+### Run a hyperparameter sweep
 
 ```bash
 uv run task sweep
@@ -51,7 +79,7 @@ uv run task sweep
 
 Runs 15 trials of random search over `max_depth`, `learning_rate`, and `n_estimators`. Head to the W&B dashboard to see the **parallel coordinates plot** showing which parameter combinations drove the best accuracy.
 
-### 6. Stop the server
+### Stop the server
 
 ```bash
 uv run task down
