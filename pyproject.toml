@@ -44,6 +44,7 @@ lint      = { cmd = "uv run ruff check . && uv run mypy src", help = "Lint and t
 [tool.ruff]
 target-version = "py312"
 line-length = 100
+src = ["src"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]

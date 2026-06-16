@@ -5,9 +5,9 @@ from __future__ import annotations
 import os
 from typing import Any
 
+import wandb
 from dotenv import load_dotenv
 
-import wandb
 from wandb_demo.data import prepare_dataset
 from wandb_demo.train import fit_and_log
 

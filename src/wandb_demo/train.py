@@ -6,11 +6,11 @@ import os
 import tempfile
 from typing import Any
 
+import wandb
 import xgboost as xgb
 from dotenv import load_dotenv
 from sklearn.metrics import accuracy_score, log_loss
 
-import wandb
 from wandb_demo.data import prepare_dataset
 
 DEFAULT_CONFIG: dict[str, Any] = {
