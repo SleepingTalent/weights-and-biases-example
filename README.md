@@ -37,7 +37,14 @@ This pulls the `wandb/local` Docker image and starts it at [http://localhost:808
 
 Visit [http://localhost:8080](http://localhost:8080) in your browser and click **Log in**. On the signup page, fill in your name, email, username, and a password, accept the terms, and click **Continue**.
 
-> An existing account is already set up — see the [Local W&B account](#local-wb-account) section below for credentials.
+An existing account is already configured for this instance:
+
+| Field | Value |
+|---|---|
+| URL | [http://localhost:8080](http://localhost:8080) |
+| Username | `jamesfairbairn` |
+| Email | `jaybono30@googlemail.com` |
+| Password | `WandbDemo1234!` |
 
 ### 5. Retrieve your API key
 
@@ -123,19 +130,6 @@ weights-biases-example/
   .env.example
   README.md
 ```
-
-## Local W&B account
-
-The local instance has one admin account pre-configured:
-
-| Field | Value |
-|---|---|
-| URL | [http://localhost:8080](http://localhost:8080) |
-| Username | `jamesfairbairn` |
-| Email | `jaybono30@googlemail.com` |
-| Password | `WandbDemo1234!` |
-
-The API key for this account is stored in `.env` (gitignored — never committed). To retrieve or rotate it, log in and visit [http://localhost:8080/authorize](http://localhost:8080/authorize).
 
 ## Configuration
 
