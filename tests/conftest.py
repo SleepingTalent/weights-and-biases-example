@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -36,15 +37,21 @@ def wandb_project() -> str:
 
 @pytest.fixture(scope="session")
 def browser_context_args(browser_context_args: dict[str, Any]) -> dict[str, Any]:
-    """Inject the W&B API key as a Bearer header on every browser request.
+    """Authenticate the Playwright browser for W&B local.
 
-    The W&B local server's GraphQL endpoint accepts Bearer auth, which allows
-    the React SPA to render authenticated run pages without a UI login flow.
+    In CI the setup script (ci_setup_wandb.py) saves the signed-in browser
+    session to PLAYWRIGHT_AUTH_STATE after signup.  Loading that file gives
+    the test browser real session cookies so protected pages don't redirect to
+    /signup.
+
+    For local dev (no auth-state file) we fall back to injecting the API key
+    as a Bearer header, which works when the W&B instance already has users.
     """
-    api_key = os.getenv("WANDB_API_KEY", "")
-    return {
-        **browser_context_args,
-        "extra_http_headers": {
-            "Authorization": f"Bearer {api_key}",
-        },
-    }
+    args: dict[str, Any] = {**browser_context_args}
+    auth_state = os.getenv("PLAYWRIGHT_AUTH_STATE", "")
+    if auth_state and Path(auth_state).exists():
+        args["storage_state"] = auth_state
+    else:
+        api_key = os.getenv("WANDB_API_KEY", "")
+        args["extra_http_headers"] = {"Authorization": f"Bearer {api_key}"}
+    return args

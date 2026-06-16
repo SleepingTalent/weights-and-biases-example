@@ -30,6 +30,7 @@ CI_PASSWORD = os.getenv("WANDB_CI_PASSWORD", "CI_Password123!")
 WANDB_PROJECT = os.getenv("WANDB_PROJECT", "wandb-demo")
 TICKER = os.getenv("TICKER", "SPY")
 LOOKBACK_YEARS = os.getenv("LOOKBACK_YEARS", "5")
+AUTH_STATE_PATH = ".playwright-auth.json"
 
 def _graphql(page: object, query: str) -> dict:  # type: ignore[type-arg]
     """Run a GraphQL query/mutation from the authenticated Playwright page."""
@@ -81,6 +82,9 @@ def signup_and_get_api_key() -> tuple[str, str]:
         )
         api_key: str = key_result["data"]["generateApiKey"]["apiKey"]["name"]
 
+        # Persist the authenticated session (cookies) so the test browser can reuse it
+        context.storage_state(path=AUTH_STATE_PATH)
+
         browser.close()
 
     return api_key, actual_username
@@ -95,6 +99,7 @@ def write_env(api_key: str, entity: str) -> None:
         f"WANDB_PROJECT={WANDB_PROJECT}\n"
         f"TICKER={TICKER}\n"
         f"LOOKBACK_YEARS={LOOKBACK_YEARS}\n"
+        f"PLAYWRIGHT_AUTH_STATE={AUTH_STATE_PATH}\n"
     )
     with open(".env", "w") as fh:
         fh.write(env_content)

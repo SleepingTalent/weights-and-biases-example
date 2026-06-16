@@ -1,4 +1,5 @@
 .env
+.playwright-auth.json
 .venv/
 __pycache__/
 *.pyc
