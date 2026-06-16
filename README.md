@@ -42,8 +42,8 @@ An existing account is already configured for this instance:
 | Field | Value |
 |---|---|
 | URL | [http://localhost:8080](http://localhost:8080) |
-| Username | `jamesfairbairn` |
-| Email | `jaybono30@googlemail.com` |
+| Username | `wb-user` |
+| Email | `wb-user@googlemail.com` |
 | Password | `WandbDemo1234!` |
 
 ### 5. Retrieve your API key
