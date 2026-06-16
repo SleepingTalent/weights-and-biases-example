@@ -2,7 +2,10 @@
 
 Run once after `docker compose up -d --wait` on a fresh W&B instance.
 Uses Playwright to complete the first-user signup form, then generates
-an API key via the authenticated GraphQL session.
+an API key via the authenticated GraphQL session.  A second browser
+performs a clean /login so the saved storage state contains proper
+session cookies (the signup form does not redirect on success, so its
+cookies are incomplete).
 
 Environment variables consumed (all optional with defaults):
   WANDB_BASE_URL       – W&B local server URL  (default: http://localhost:8080)
@@ -32,6 +35,7 @@ TICKER = os.getenv("TICKER", "SPY")
 LOOKBACK_YEARS = os.getenv("LOOKBACK_YEARS", "5")
 AUTH_STATE_PATH = ".playwright-auth.json"
 
+
 def _graphql(page: object, query: str) -> dict:  # type: ignore[type-arg]
     """Run a GraphQL query/mutation from the authenticated Playwright page."""
     result: dict = (page).evaluate(  # type: ignore[union-attr,assignment]
@@ -48,17 +52,24 @@ def _graphql(page: object, query: str) -> dict:  # type: ignore[type-arg]
 def signup_and_get_api_key() -> tuple[str, str]:
     """Complete the W&B first-user signup and return (api_key, actual_username).
 
-    The actual username is read from viewer.username after signup because the
-    W&B local server may normalise the requested username (e.g. the first user
-    is sometimes assigned 'local' instead of the submitted value).
+    Two browser sessions are used:
+    1. Signup browser — fills the first-user creation form and generates an API
+       key via GraphQL.  The signup form does not redirect on success, so its
+       cookies are not suitable for reuse.
+    2. Login browser — performs a clean /login with the same credentials and
+       saves the resulting session cookies to AUTH_STATE_PATH.  These cookies
+       are what the Playwright test browser loads so protected pages render
+       without redirecting to /signup.
     """
     with sync_playwright() as playwright:
+        # --- Browser 1: create the account and get the API key ---
         browser = playwright.chromium.launch(headless=True)
         context = browser.new_context()
         page = context.new_page()
 
         page.goto(f"{WANDB_BASE_URL}/signup")
-        page.wait_for_load_state("domcontentloaded")
+        page.wait_for_load_state("networkidle")
+        page.wait_for_selector('[data-test="name-input"]', timeout=60_000)
 
         page.locator('[data-test="name-input"]').fill(CI_FULLNAME)
         page.locator('[data-test="email-input"]').fill(CI_EMAIL)
@@ -69,23 +80,35 @@ def signup_and_get_api_key() -> tuple[str, str]:
         ).check()
         page.get_by_text("Continue").click()
 
-        page.wait_for_url(f"{WANDB_BASE_URL}/**", timeout=20_000)
+        # The signup form stays at /signup on success; wait for the viewer
+        # query to confirm the account was created before proceeding.
+        page.wait_for_timeout(3_000)
 
-        # Resolve the actual username assigned by the server
         viewer = _graphql(page, "{ viewer { username } }")
         actual_username: str = viewer["data"]["viewer"]["username"]
 
-        # Generate a CI API key
         key_result = _graphql(
             page,
             'mutation { generateApiKey(input: {description: "ci"}) { apiKey { name } } }',
         )
         api_key: str = key_result["data"]["generateApiKey"]["apiKey"]["name"]
-
-        # Persist the authenticated session (cookies) so the test browser can reuse it
-        context.storage_state(path=AUTH_STATE_PATH)
-
         browser.close()
+
+        # --- Browser 2: log in cleanly and save session cookies ---
+        browser2 = playwright.chromium.launch(headless=True)
+        context2 = browser2.new_context()
+        page2 = context2.new_page()
+
+        page2.goto(f"{WANDB_BASE_URL}/login")
+        page2.wait_for_load_state("networkidle")
+        page2.locator("input[name=email]").fill(CI_EMAIL)
+        page2.locator("input[name=password]").fill(CI_PASSWORD)
+        page2.locator("input[name=password]").press("Enter")
+        page2.wait_for_url(f"{WANDB_BASE_URL}/home", timeout=20_000)
+        page2.wait_for_load_state("networkidle")
+
+        context2.storage_state(path=AUTH_STATE_PATH)
+        browser2.close()
 
     return api_key, actual_username
 

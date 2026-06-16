@@ -7,6 +7,7 @@ these steps from the offline `task test` suite.
 
 from __future__ import annotations
 
+import re
 import time
 from functools import partial
 from pathlib import Path
@@ -70,9 +71,9 @@ def run_appears_in_dashboard(
 ) -> None:
     run_url = f"{server_url}/{wandb_entity}/{wandb_project}/runs/{run_id}"
     page.goto(run_url)
-    page.wait_for_load_state("domcontentloaded")
-    # W&B embeds the run ID in the page URL — confirm we landed on the right page
-    expect(page).to_have_url(f"{run_url}")
+    page.wait_for_load_state("networkidle")
+    # W&B may append query params (e.g. ?nw=...) — match the path only
+    expect(page).to_have_url(re.compile(re.escape(run_url)))
 
 
 @then("the run has train_accuracy metrics logged")
@@ -90,7 +91,7 @@ def run_has_model_artifact(
     """Navigate to the run's output artifacts section and verify the model is listed."""
     artifacts_url = f"{server_url}/{wandb_entity}/{wandb_project}/runs/{run_id}/artifacts"
     page.goto(artifacts_url)
-    page.wait_for_load_state("domcontentloaded")
+    page.wait_for_load_state("networkidle")
     expect(page.get_by_text("xgboost-model", exact=False).first).to_be_visible(
         timeout=15000
     )
