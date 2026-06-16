@@ -31,14 +31,26 @@ WANDB_PROJECT = os.getenv("WANDB_PROJECT", "wandb-demo")
 TICKER = os.getenv("TICKER", "SPY")
 LOOKBACK_YEARS = os.getenv("LOOKBACK_YEARS", "5")
 
-GRAPHQL_URL = f"{WANDB_BASE_URL}/graphql"
-GENERATE_KEY_MUTATION = (
-    'mutation { generateApiKey(input: {description: "ci"}) { apiKey { name } } }'
-)
+def _graphql(page: object, query: str) -> dict:  # type: ignore[type-arg]
+    """Run a GraphQL query/mutation from the authenticated Playwright page."""
+    result: dict = (page).evaluate(  # type: ignore[union-attr,assignment]
+        "(q) => fetch('/graphql', {"
+        "  method: 'POST',"
+        "  headers: {'Content-Type': 'application/json'},"
+        "  body: JSON.stringify({ query: q })"
+        "}).then(r => r.json())",
+        query,
+    )
+    return result
 
 
 def signup_and_get_api_key() -> tuple[str, str]:
-    """Complete the W&B first-user signup and return (api_key, username)."""
+    """Complete the W&B first-user signup and return (api_key, actual_username).
+
+    The actual username is read from viewer.username after signup because the
+    W&B local server may normalise the requested username (e.g. the first user
+    is sometimes assigned 'local' instead of the submitted value).
+    """
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         context = browser.new_context()
@@ -58,19 +70,20 @@ def signup_and_get_api_key() -> tuple[str, str]:
 
         page.wait_for_url(f"{WANDB_BASE_URL}/**", timeout=20_000)
 
-        result: dict = page.evaluate(  # type: ignore[assignment]
-            """(mutation) => fetch('/graphql', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ query: mutation })
-            }).then(r => r.json())""",
-            GENERATE_KEY_MUTATION,
-        )
+        # Resolve the actual username assigned by the server
+        viewer = _graphql(page, "{ viewer { username } }")
+        actual_username: str = viewer["data"]["viewer"]["username"]
 
-        api_key: str = result["data"]["generateApiKey"]["apiKey"]["name"]
+        # Generate a CI API key
+        key_result = _graphql(
+            page,
+            'mutation { generateApiKey(input: {description: "ci"}) { apiKey { name } } }',
+        )
+        api_key: str = key_result["data"]["generateApiKey"]["apiKey"]["name"]
+
         browser.close()
 
-    return api_key, CI_USERNAME
+    return api_key, actual_username
 
 
 def write_env(api_key: str, entity: str) -> None:
