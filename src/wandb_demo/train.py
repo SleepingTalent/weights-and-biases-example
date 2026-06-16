@@ -94,8 +94,11 @@ def fit_and_log(
         print("Model artifact logged to W&B.")
 
 
-def train(config: dict[str, Any]) -> None:
-    """Run a single tracked XGBoost experiment and log everything to W&B."""
+def train(config: dict[str, Any]) -> str:
+    """Run a single tracked XGBoost experiment and log everything to W&B.
+
+    Returns the W&B run ID so callers (including BDD steps) can link to the run.
+    """
     ticker = os.getenv("TICKER", "SPY")
     lookback_years = int(os.getenv("LOOKBACK_YEARS", "5"))
     project = os.getenv("WANDB_PROJECT", "wandb-demo")
@@ -103,7 +106,9 @@ def train(config: dict[str, Any]) -> None:
     print(f"Fetching {lookback_years}y of {ticker} data …")
     dataset = prepare_dataset(ticker, lookback_years)
 
+    run_id = ""
     with wandb.init(project=project, config=config) as run:
+        run_id = run.id
         fit_and_log(
             run,
             dataset["X_train"],
@@ -111,6 +116,7 @@ def train(config: dict[str, Any]) -> None:
             dataset["y_train"],
             dataset["y_test"],
         )
+    return run_id
 
 
 if __name__ == "__main__":
