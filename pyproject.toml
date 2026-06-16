@@ -35,6 +35,7 @@ packages = ["src/wandb_demo"]
 [tool.taskipy.tasks]
 up    = { cmd = "docker compose up -d", help = "Start W&B local server" }
 down  = { cmd = "docker compose down", help = "Stop W&B local server" }
+setup = { cmd = "docker compose down -v 2>/dev/null; docker compose up -d --wait && uv run python scripts/ci_setup_wandb.py", help = "Fresh W&B instance with a provisioned user — ready for task train" }
 train = { cmd = "uv run python src/wandb_demo/train.py", help = "Run a single training experiment" }
 sweep = { cmd = "uv run python src/wandb_demo/sweep.py", help = "Run hyperparameter sweep (15 runs)" }
 test      = { cmd = "uv run pytest -m 'not e2e'", help = "Run offline unit tests" }
