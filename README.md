@@ -9,11 +9,7 @@ Built as a portfolio artifact to demonstrate local MLOps experiment tracking, ar
 - [Docker](https://docs.docker.com/get-docker/) and Docker Compose
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) (Python package manager)
 
----
-
 ## First-time setup
-
-Follow these steps once before running any experiments.
 
 ### 1. Install dependencies
 
@@ -33,13 +29,11 @@ cp .env.example .env
 uv run task up
 ```
 
-This pulls the `wandb/local` Docker image and starts it at [http://localhost:8080](http://localhost:8080). The named volume `wandb-demo-data` means your experiments persist between restarts.
+This pulls the `wandb/local` Docker image and starts it at [http://localhost:8080](http://localhost:8080).
 
 ### 4. Create your account
 
 Open [http://localhost:8080](http://localhost:8080) in your browser. On a fresh instance the server goes straight to the **Sign Up** page — there are no existing accounts.
-
-Fill in the form:
 
 | Field | What to enter |
 |---|---|
@@ -50,34 +44,24 @@ Fill in the form:
 
 Check **I agree to the Terms** and click **Continue**. The server will log you in automatically.
 
-> **Note:** The W&B local server assigns the username `local` to the very first account created on a fresh instance, regardless of what you type. You can see your actual username at [http://localhost:8080/settings](http://localhost:8080/settings).
+> **Note:** The W&B local server assigns the username `local` to the very first account created on a fresh instance, regardless of what you type. You can confirm your actual username at [http://localhost:8080/settings](http://localhost:8080/settings).
 
-### 5. Retrieve your API key
+### 5. Get your API key and update `.env`
 
-After logging in, navigate to:
+Navigate to [http://localhost:8080/authorize](http://localhost:8080/authorize) and click **Generate new API key**. The key is only shown once — copy it immediately.
 
-```
-http://localhost:8080/authorize
-```
-
-Click **Generate new API key**. The key will be displayed — **copy it now**, as it is only shown once in full.
-
-### 6. Add your credentials to `.env`
-
-Open `.env` and fill in the values from steps 4 and 5:
+Open `.env` and fill in both values:
 
 ```
 WANDB_API_KEY=your-api-key-here
 WANDB_ENTITY=your-username-here
 ```
 
-Your `.env` is gitignored and will never be committed. To rotate the key later, return to [http://localhost:8080/authorize](http://localhost:8080/authorize).
-
----
+Your `.env` is gitignored and will never be committed.
 
 ## Running experiments
 
-### Run a training experiment
+### Training run
 
 ```bash
 uv run task train
@@ -85,7 +69,7 @@ uv run task train
 
 Fetches 5 years of SPY daily OHLCV data from Yahoo Finance, engineers features (rolling returns, RSI, volume ratio), trains an XGBoost binary classifier, and logs params, per-round metrics, and a model artifact to W&B.
 
-### Run a hyperparameter sweep
+### Hyperparameter sweep
 
 ```bash
 uv run task sweep
@@ -93,69 +77,59 @@ uv run task sweep
 
 Runs 15 trials of random search over `max_depth`, `learning_rate`, and `n_estimators`. Head to the W&B dashboard to see the **parallel coordinates plot** showing which parameter combinations drove the best accuracy.
 
-### Stop the server
+## Cleaning up run data
 
-```bash
-uv run task down
-```
+Each experiment writes data in two places:
 
-The named Docker volume (`wandb-demo-data`) persists your experiments between sessions.
+| Location | What it contains | How to remove |
+|---|---|---|
+| `./wandb/` (local folder) | SDK cache and local log files written by the wandb client | `rm -rf wandb/` — safe to delete at any time, already gitignored |
+| Docker volume `wandb-demo-data` | Everything visible in the dashboard (runs, metrics, artifacts) | See options below |
 
----
+### Remove specific runs from the dashboard
 
-## Starting fresh
-
-### Delete all runs from a project
-
-To clear the run history without destroying your account or server:
-
-1. Open the project in the dashboard: [http://localhost:8080](http://localhost:8080)
+1. Open the project at [http://localhost:8080](http://localhost:8080)
 2. In the **Runs** table, tick the checkbox in the header row to select all runs
 3. Click the **Delete** button (bin icon) that appears in the toolbar
 4. Confirm the deletion
 
-The project itself and your account are kept — only the run records and their logged metrics are removed.
+Your account and project are kept — only the selected run records are removed.
 
 ### Full reset (wipe everything and start over)
 
-This destroys all data — accounts, runs, artifacts, and the project history — and gives you a completely fresh W&B instance:
-
 ```bash
-# Stop the server and remove the persistent volume
 docker compose down -v
 ```
 
-The `-v` flag removes the `wandb-demo-data` volume. The next `task up` will pull a clean container with no users or data, and you will need to go through the [first-time setup](#first-time-setup) again.
+The `-v` flag removes the `wandb-demo-data` volume along with the container. The next `task up` gives a completely fresh instance with no users or data. You will need to repeat the [first-time setup](#first-time-setup).
 
-> **Warning:** This is irreversible. All experiment history will be lost.
-
----
-
-## Dashboard highlights
-
-After running both commands, the W&B dashboard at [http://localhost:8080](http://localhost:8080) will show:
-
-- **Runs table** — each training run with logged hyperparameters and final metrics
-- **Charts** — per-round logloss and accuracy curves for the single training run
-- **Artifacts** — the saved XGBoost model file
-- **Sweep** — parallel coordinates plot across 15 runs with hyperparameter importance
-
----
+> **Warning:** This is irreversible. All experiment history, artifacts, and accounts will be lost.
 
 ## Available tasks
 
 | Command | Description |
 |---|---|
 | `uv run task up` | Start W&B local server on `localhost:8080` |
-| `uv run task down` | Stop W&B local server |
+| `uv run task down` | Stop W&B local server (data is preserved) |
 | `uv run task train` | Run a single tracked training experiment |
 | `uv run task sweep` | Run a 15-trial hyperparameter sweep |
 | `uv run task test` | Run the offline unit tests |
 | `uv run task test-e2e` | Start W&B, run E2E BDD tests, stop W&B |
-| `uv run task test-e2e-watch` | Same as above but with a headed browser and 500 ms slowmo |
+| `uv run task test-e2e-watch` | Same as above with a headed browser and 500 ms slowmo |
 | `uv run task lint` | Lint and type-check (`ruff` + `mypy --strict`) |
 
----
+## Configuration
+
+All config is via `.env` (copy from `.env.example`):
+
+| Variable | Default | Description |
+|---|---|---|
+| `WANDB_BASE_URL` | `http://localhost:8080` | W&B server URL |
+| `WANDB_API_KEY` | — | API key from [/authorize](http://localhost:8080/authorize) |
+| `WANDB_ENTITY` | — | Your W&B username (often `local` on a fresh instance) |
+| `WANDB_PROJECT` | `wandb-demo` | Project name in W&B |
+| `TICKER` | `SPY` | Yahoo Finance ticker symbol |
+| `LOOKBACK_YEARS` | `5` | Years of historical data to fetch |
 
 ## Project structure
 
@@ -183,23 +157,6 @@ weights-biases-example/
   .env.example
   README.md
 ```
-
----
-
-## Configuration
-
-All config is via `.env` (copy from `.env.example`):
-
-| Variable | Default | Description |
-|---|---|---|
-| `WANDB_BASE_URL` | `http://localhost:8080` | W&B server URL |
-| `WANDB_API_KEY` | — | API key from W&B settings |
-| `WANDB_ENTITY` | — | Your W&B username (often `local` on a fresh instance) |
-| `WANDB_PROJECT` | `wandb-demo` | Project name in W&B |
-| `TICKER` | `SPY` | Yahoo Finance ticker symbol |
-| `LOOKBACK_YEARS` | `5` | Years of historical data to fetch |
-
----
 
 ## Stack
 
