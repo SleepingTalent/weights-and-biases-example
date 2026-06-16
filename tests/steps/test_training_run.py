@@ -7,6 +7,7 @@ these steps from the offline `task test` suite.
 
 from __future__ import annotations
 
+import time
 from functools import partial
 from pathlib import Path
 
@@ -35,12 +36,21 @@ def test_training_run_in_dashboard() -> None:
 
 @given("the W&B server is running", target_fixture="server_url")
 def wb_server_running(wandb_base_url: str) -> str:
-    """Assert the local W&B instance is reachable and return its base URL."""
-    response = requests.get(wandb_base_url, timeout=10)
-    assert response.status_code == 200, (
-        f"W&B server not reachable at {wandb_base_url} — run `task up` first"
-    )
-    return wandb_base_url
+    """Wait up to 60 s for the W&B server to be reachable, then return its URL."""
+    deadline = time.monotonic() + 60
+    last_exc: Exception = RuntimeError("never attempted")
+    while time.monotonic() < deadline:
+        try:
+            r = requests.get(wandb_base_url, timeout=5)
+            if r.status_code == 200:
+                return wandb_base_url
+        except requests.exceptions.ConnectionError as exc:
+            last_exc = exc
+        time.sleep(2)
+    raise AssertionError(
+        f"W&B server not reachable at {wandb_base_url} after 60 s. "
+        f"Start it with `task up` or `task test-e2e`. Last error: {last_exc}"
+    ) from last_exc
 
 
 @when("I run a training experiment with 10 estimators", target_fixture="run_id")
