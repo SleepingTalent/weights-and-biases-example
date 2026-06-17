@@ -37,21 +37,21 @@ up    = { cmd = "docker compose up -d", help = "Start W&B local server" }
 down  = { cmd = "docker compose down", help = "Stop W&B local server" }
 run-local-server = { cmd = "docker compose down -v 2>/dev/null; docker compose up -d --wait && uv run python scripts/ci_setup_wandb.py", help = "Fresh W&B instance with a provisioned user — ready for task train" }
 train          = { cmd = "uv run python src/wandb_demo/train.py", help = "Run a single training experiment — set TICKER env var to choose asset" }
-train_eurusd   = { cmd = "TICKER=EURUSD=X uv run python src/wandb_demo/train.py", help = "Run a single training experiment on EURUSD=X" }
-train_spy      = { cmd = "TICKER=SPY uv run python src/wandb_demo/train.py", help = "Run a single training experiment on SPY" }
-train_gbpusd   = { cmd = "TICKER=GBPUSD=X uv run python src/wandb_demo/train.py", help = "Run a single training experiment on GBPUSD=X" }
+train_eurusd   = { cmd = "TICKER=EURUSD=X uv run task train", help = "Run a single training experiment on EURUSD=X" }
+train_spy      = { cmd = "TICKER=SPY uv run task train", help = "Run a single training experiment on SPY" }
+train_gbpusd   = { cmd = "TICKER=GBPUSD=X uv run task train", help = "Run a single training experiment on GBPUSD=X" }
 sweep          = { cmd = "uv run python src/wandb_demo/sweep.py", help = "Run hyperparameter sweep (50 runs) — set TICKER env var to choose asset" }
-sweep_eurusd   = { cmd = "TICKER=EURUSD=X uv run python src/wandb_demo/sweep.py", help = "Run hyperparameter sweep on EURUSD=X" }
-sweep_spy      = { cmd = "TICKER=SPY uv run python src/wandb_demo/sweep.py", help = "Run hyperparameter sweep on SPY" }
-sweep_gbpusd   = { cmd = "TICKER=GBPUSD=X uv run python src/wandb_demo/sweep.py", help = "Run hyperparameter sweep on GBPUSD=X" }
+sweep_eurusd   = { cmd = "TICKER=EURUSD=X uv run task sweep", help = "Run hyperparameter sweep on EURUSD=X" }
+sweep_spy      = { cmd = "TICKER=SPY uv run task sweep", help = "Run hyperparameter sweep on SPY" }
+sweep_gbpusd   = { cmd = "TICKER=GBPUSD=X uv run task sweep", help = "Run hyperparameter sweep on GBPUSD=X" }
 predict        = { cmd = "uv run python src/wandb_demo/predict.py", help = "Load best model artifact for TICKER and output today's directional signal" }
-predict_eurusd = { cmd = "TICKER=EURUSD=X uv run python src/wandb_demo/predict.py", help = "Predict next-day direction for EURUSD=X" }
-predict_gbpusd = { cmd = "TICKER=GBPUSD=X uv run python src/wandb_demo/predict.py", help = "Predict next-day direction for GBPUSD=X" }
-predict_spy    = { cmd = "TICKER=SPY uv run python src/wandb_demo/predict.py", help = "Predict next-day direction for SPY" }
+predict_eurusd = { cmd = "TICKER=EURUSD=X uv run task predict", help = "Predict next-day direction for EURUSD=X" }
+predict_gbpusd = { cmd = "TICKER=GBPUSD=X uv run task predict", help = "Predict next-day direction for GBPUSD=X" }
+predict_spy    = { cmd = "TICKER=SPY uv run task predict", help = "Predict next-day direction for SPY" }
 promote        = { cmd = "uv run python scripts/promote_best_model.py", help = "Promote best model for TICKER — set TICKER env var" }
-promote_eurusd = { cmd = "TICKER=EURUSD=X uv run python scripts/promote_best_model.py", help = "Promote best EURUSD=X model as 'best'" }
-promote_gbpusd = { cmd = "TICKER=GBPUSD=X uv run python scripts/promote_best_model.py", help = "Promote best GBPUSD=X model as 'best'" }
-promote_spy    = { cmd = "TICKER=SPY uv run python scripts/promote_best_model.py", help = "Promote best SPY model as 'best'" }
+promote_eurusd = { cmd = "TICKER=EURUSD=X uv run task promote", help = "Promote best EURUSD=X model as 'best'" }
+promote_gbpusd = { cmd = "TICKER=GBPUSD=X uv run task promote", help = "Promote best GBPUSD=X model as 'best'" }
+promote_spy    = { cmd = "TICKER=SPY uv run task promote", help = "Promote best SPY model as 'best'" }
 export_models  = { cmd = "uv run python scripts/export_models.py", help = "Download best model artifacts from W&B into models/<ticker>/model.json" }
 test      = { cmd = "uv run pytest -m 'not e2e'", help = "Run offline unit tests" }
 test-e2e  = { cmd = "uv run task run-local-server && (uv run pytest -m e2e; rc=$?; docker compose down; exit $rc)", help = "Fresh W&B instance, provision user, run E2E BDD tests, stop W&B" }
