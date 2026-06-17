@@ -35,12 +35,12 @@ packages = ["src/wandb_demo"]
 [tool.taskipy.tasks]
 up    = { cmd = "docker compose up -d", help = "Start W&B local server" }
 down  = { cmd = "docker compose down", help = "Stop W&B local server" }
-setup = { cmd = "docker compose down -v 2>/dev/null; docker compose up -d --wait && uv run python scripts/ci_setup_wandb.py", help = "Fresh W&B instance with a provisioned user — ready for task train" }
+run-local-server = { cmd = "docker compose down -v 2>/dev/null; docker compose up -d --wait && uv run python scripts/ci_setup_wandb.py", help = "Fresh W&B instance with a provisioned user — ready for task train" }
 train = { cmd = "uv run python src/wandb_demo/train.py", help = "Run a single training experiment" }
 sweep = { cmd = "uv run python src/wandb_demo/sweep.py", help = "Run hyperparameter sweep (15 runs)" }
 test      = { cmd = "uv run pytest -m 'not e2e'", help = "Run offline unit tests" }
-test-e2e  = { cmd = "uv run task setup && (uv run pytest -m e2e; rc=$?; docker compose down; exit $rc)", help = "Fresh W&B instance, provision user, run E2E BDD tests, stop W&B" }
-test-e2e-watch = { cmd = "uv run task setup && (uv run pytest -m e2e --headed --slowmo 500; rc=$?; docker compose down; exit $rc)", help = "Same as test-e2e but with a headed browser and 500ms slowmo" }
+test-e2e  = { cmd = "uv run task run-local-server && (uv run pytest -m e2e; rc=$?; docker compose down; exit $rc)", help = "Fresh W&B instance, provision user, run E2E BDD tests, stop W&B" }
+test-e2e-watch = { cmd = "uv run task run-local-server && (uv run pytest -m e2e --headed --slowmo 500; rc=$?; docker compose down; exit $rc)", help = "Same as test-e2e but with a headed browser and 500ms slowmo" }
 lint      = { cmd = "uv run ruff check . && uv run mypy src", help = "Lint and type-check" }
 
 [tool.ruff]
