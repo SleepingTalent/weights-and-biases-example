@@ -12,14 +12,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def pytest_bdd_apply_tag(tag: str, function: object) -> bool | None:
-    """Map @e2e feature-file tags to the pytest.mark.e2e marker."""
-    if tag == "e2e":
-        pytest.mark.e2e(function)
-        return True
-    return None
-
-
 @pytest.fixture(scope="session")
 def wandb_base_url() -> str:
     return os.getenv("WANDB_BASE_URL", "http://localhost:8080")
