@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 from typing import Any
 
 import pandas as pd
@@ -55,6 +56,7 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+@lru_cache(maxsize=4)
 def prepare_dataset(ticker: str, lookback_years: int) -> dict[str, NDArray[Any]]:
     """Return a train/test split dict ready for model training.
 
