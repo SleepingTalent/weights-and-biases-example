@@ -1,8 +1,8 @@
 # W&B Local Tracking Demo
 
-A self-contained demo that runs a self-hosted [Weights & Biases](https://wandb.ai) instance via Docker and logs a real XGBoost training run — plus a hyperparameter sweep — against it. No cloud account required.
+A self-contained demo that runs a self-hosted [Weights & Biases](https://wandb.ai) instance via Docker and trains XGBoost binary classifiers for directional prediction on FX and equity markets. No cloud account required.
 
-Built as a portfolio artifact to demonstrate local MLOps experiment tracking, artifact logging, and hyperparameter optimisation using W&B's distinctive sweep visualisation.
+Built as a portfolio artifact to demonstrate local MLOps experiment tracking, artifact logging, hyperparameter sweeps, model promotion, and inference using W&B's self-hosted server.
 
 ## Prerequisites
 
@@ -11,21 +11,12 @@ Built as a portfolio artifact to demonstrate local MLOps experiment tracking, ar
 
 ## First-time setup
 
-### 1. Install dependencies
-
 ```bash
 uv sync
-```
-
-### 2. Create your environment file
-
-```bash
 cp .env.example .env
 ```
 
 ## Running the W&B Local Server
-
-Run the setup task to start a fresh W&B instance and automatically provision a user account:
 
 ```bash
 uv run task run-local-server
@@ -42,9 +33,7 @@ This will:
 | Username | `ci-user` |
 | Password | `CI_Password123!` |
 
-4. Generate an API key and write it to `.env` along with the entity — ready for `task train` and `task sweep` to use immediately
-
-Once setup completes, open [http://localhost:8080](http://localhost:8080) and log in with the credentials above.
+4. Generate an API key and write it to `.env` — ready for training tasks immediately
 
 To stop the server when you're done:
 
@@ -52,78 +41,99 @@ To stop the server when you're done:
 uv run task down
 ```
 
-## Running experiments
+## Supported tickers
 
-### Training run
+| Ticker | Class | Features |
+|--------|-------|----------|
+| `EURUSD=X` | `EURUSDTicker` | 11 — returns, RSI, ATR, MACD, SMA50 ratio, DXY, VIX |
+| `GBPUSD=X` | `GBPUSDTicker` | 13 — same as EURUSD + EURUSD cross-asset returns |
+| `SPY` | `SPYTicker` | 5 — returns, RSI, volume ratio |
 
-```bash
-uv run task train
-```
+Best observed test accuracy from narrowed sweeps: EURUSD=X **68.80%**, GBPUSD=X **67.60%**.
 
-Fetches 5 years of SPY daily OHLCV data from Yahoo Finance, engineers features (rolling returns, RSI, volume ratio), trains an XGBoost binary classifier, and logs params, per-round metrics, and a model artifact to W&B.
+## Typical workflow
 
-### Hyperparameter sweep
-
-```bash
-uv run task sweep
-```
-
-Runs 15 trials of random search over `max_depth`, `learning_rate`, and `n_estimators`. Head to the W&B dashboard to see the **parallel coordinates plot** showing which parameter combinations drove the best accuracy.
-
-## Cleaning up run data
-
-Each experiment writes data in two places:
-
-| Location | What it contains | How to remove |
-|---|---|---|
-| `./wandb/` (local folder) | SDK cache and local log files written by the wandb client | `rm -rf wandb/` — safe to delete at any time, already gitignored |
-| Docker volume `wandb-demo-data` | Everything visible in the dashboard (runs, metrics, artifacts) | See options below |
-
-### Remove specific runs from the dashboard
-
-1. Open the project at [http://localhost:8080](http://localhost:8080)
-2. In the **Runs** table, tick the checkbox in the header row to select all runs
-3. Click the **Delete** button (bin icon) that appears in the toolbar
-4. Confirm the deletion
-
-Your account and project are kept — only the selected run records are removed.
-
-### Full reset (wipe everything and start over)
+### 1. Start the server
 
 ```bash
-docker compose down -v
+uv run task run-local-server
 ```
 
-The `-v` flag removes the `wandb-demo-data` volume along with the container. Run `task run-local-server` again to get a fresh instance.
+### 2. Run a sweep
 
-> **Warning:** This is irreversible. All experiment history, artifacts, and accounts will be lost.
+```bash
+uv run task sweep_eurusd   # or sweep_gbpusd / sweep_spy
+```
+
+Runs 20 trials of random search over `learning_rate` (0.07–0.10) and `n_estimators` (180–250) with `max_depth=5` fixed. Open [http://localhost:8080](http://localhost:8080) to see the parallel coordinates plot.
+
+### 3. Promote the best model
+
+```bash
+uv run task promote_eurusd   # or promote_gbpusd / promote_spy
+```
+
+Finds the highest `test_accuracy` run for the ticker across all completed sweep runs and tags that model artifact with the `best` alias.
+
+### 4. Get today's signal
+
+```bash
+uv run task predict_eurusd   # or predict_gbpusd / predict_spy
+```
+
+Downloads the `best` artifact, fetches the latest market data, and prints a directional signal with probability.
+
+### 5. Export models to disk
+
+```bash
+uv run task export_models
+```
+
+Downloads the `best` artifact for each ticker into `models/<ticker>/model.json` so models survive a server restart.
 
 ## Available tasks
 
 | Command | Description |
 |---|---|
-| `uv run task run-local-server` | Fresh W&B instance with a provisioned user — ready for task train |
-| `uv run task up` | Start W&B local server on `localhost:8080` (existing data preserved) |
-| `uv run task down` | Stop W&B local server (data is preserved) |
-| `uv run task train` | Run a single tracked training experiment |
-| `uv run task sweep` | Run a 15-trial hyperparameter sweep |
-| `uv run task test` | Run the offline unit tests |
-| `uv run task test-e2e` | Fresh W&B instance, run E2E BDD tests, stop W&B |
-| `uv run task test-e2e-watch` | Same as above with a headed browser and 500 ms slowmo |
-| `uv run task lint` | Lint and type-check (`ruff` + `mypy --strict`) |
+| `uv run task run-local-server` | Fresh W&B instance with a provisioned user |
+| `uv run task up` | Start W&B server (existing data preserved) |
+| `uv run task down` | Stop W&B server (data preserved) |
+| **Training** | |
+| `uv run task train_eurusd` | Single training run on EURUSD=X |
+| `uv run task train_gbpusd` | Single training run on GBPUSD=X |
+| `uv run task train_spy` | Single training run on SPY |
+| **Sweeps** | |
+| `uv run task sweep_eurusd` | 20-trial sweep on EURUSD=X |
+| `uv run task sweep_gbpusd` | 20-trial sweep on GBPUSD=X |
+| `uv run task sweep_spy` | 20-trial sweep on SPY |
+| **Promotion** | |
+| `uv run task promote_eurusd` | Tag best EURUSD=X model artifact as `best` |
+| `uv run task promote_gbpusd` | Tag best GBPUSD=X model artifact as `best` |
+| `uv run task promote_spy` | Tag best SPY model artifact as `best` |
+| **Prediction** | |
+| `uv run task predict_eurusd` | Today's directional signal for EURUSD=X |
+| `uv run task predict_gbpusd` | Today's directional signal for GBPUSD=X |
+| `uv run task predict_spy` | Today's directional signal for SPY |
+| **Models** | |
+| `uv run task export_models` | Download best artifacts to `models/` |
+| **Testing** | |
+| `uv run task test` | Offline unit tests |
+| `uv run task test-e2e` | E2E BDD tests (starts + stops W&B automatically) |
+| `uv run task lint` | `ruff` + `mypy --strict` |
 
 ## Configuration
 
-All config is via `.env` (copy from `.env.example`). The `task run-local-server` command writes these automatically:
+All config is via `.env` (copy from `.env.example`). `task run-local-server` writes the API key and entity automatically.
 
 | Variable | Default | Description |
 |---|---|---|
 | `WANDB_BASE_URL` | `http://localhost:8080` | W&B server URL |
-| `WANDB_API_KEY` | — | Generated by `task run-local-server` and written to `.env` |
-| `WANDB_ENTITY` | — | W&B username, set to `ci-user` by `task run-local-server` |
+| `WANDB_API_KEY` | — | Written automatically by `run-local-server` |
+| `WANDB_ENTITY` | `ci-user` | Written automatically by `run-local-server` |
 | `WANDB_PROJECT` | `wandb-demo` | Project name in W&B |
-| `TICKER` | `SPY` | Yahoo Finance ticker symbol |
 | `LOOKBACK_YEARS` | `5` | Years of historical data to fetch |
+
+The ticker is set per-task (e.g. `sweep_eurusd`) rather than as a `.env` variable.
 
 ## Project structure
 
@@ -131,32 +141,53 @@ All config is via `.env` (copy from `.env.example`). The `task run-local-server`
 weights-biases-example/
   src/
     wandb_demo/
-      data.py       # Yahoo Finance fetch + feature engineering
-      train.py      # Single XGBoost run with W&B tracking
-      sweep.py      # Hyperparameter sweep controller
+      tickers/
+        base.py       # Ticker ABC + shared helpers (RSI, ATR, MACD, cross-asset fetch)
+        eurusd.py     # EURUSDTicker — 11 features incl. DXY + VIX
+        gbpusd.py     # GBPUSDTicker — 13 features incl. DXY + VIX + EURUSD
+        spy.py        # SPYTicker — 5 features
+        __init__.py   # make_ticker() factory + _TICKER_MAP
+      data.py         # Yahoo Finance fetch + train/test split
+      train.py        # Single XGBoost run with W&B tracking
+      sweep.py        # Hyperparameter sweep controller
+      predict.py      # Load best artifact and output directional signal
+  models/
+    eurusd/
+      model.json      # Best EURUSD=X model (exported from W&B)
+    gbpusd/
+      model.json      # Best GBPUSD=X model (exported from W&B)
+  scripts/
+    ci_setup_wandb.py       # Provisions a CI user on a fresh W&B instance
+    promote_best_model.py   # Finds best run for TICKER and tags artifact as 'best'
+    export_models.py        # Downloads best artifacts to models/
   tests/
     features/
-      training_run.feature   # BDD scenario
+      training_run.feature  # BDD scenario
     steps/
-      test_training_run.py   # Playwright + pytest-bdd step definitions
+      test_training_run.py  # Playwright + pytest-bdd step definitions
     conftest.py
-    test_data.py             # Offline unit tests for data pipeline
-  scripts/
-    ci_setup_wandb.py        # Provisions a CI user on a fresh W&B instance
-  .github/
-    workflows/
-      ci.yml                 # lint → unit test pipeline
+    test_data.py            # Offline unit tests for data pipeline + tickers
   docker-compose.yml
   pyproject.toml
   .env.example
   README.md
 ```
 
+## Cleaning up
+
+| What | How |
+|---|---|
+| Local SDK cache | `rm -rf wandb/` |
+| All runs + artifacts (keep account) | Delete via W&B dashboard runs table |
+| Full reset (wipes Docker volume) | `docker compose down -v` then `uv run task run-local-server` |
+
+> **Warning:** `docker compose down -v` is irreversible — all experiment history and artifacts are lost. Run `uv run task export_models` first to preserve trained models locally.
+
 ## Stack
 
 - **Python 3.12+** with `uv` and `pyproject.toml`
 - **XGBoost** — gradient boosted classifier
-- **yfinance** — Yahoo Finance market data
+- **yfinance** — Yahoo Finance market data (OHLCV + cross-asset)
 - **wandb** — experiment tracking, artifact logging, sweep orchestration
 - **Docker Compose** — self-hosted W&B local server
 - **taskipy** — task runner

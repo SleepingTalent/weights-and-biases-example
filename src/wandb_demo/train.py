@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from sklearn.metrics import accuracy_score, log_loss
 
 from wandb_demo.data import prepare_dataset
+from wandb_demo.tickers import make_ticker
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "n_estimators": 200,
@@ -88,7 +89,8 @@ def fit_and_log(
     with tempfile.TemporaryDirectory() as tmpdir:
         model_path = os.path.join(tmpdir, "model.json")
         clf.save_model(model_path)
-        artifact = wandb.Artifact("xgboost-model", type="model")
+        ticker_slug = run.config.get("ticker", "unknown").lower().replace("=x", "").replace(".", "")
+        artifact = wandb.Artifact(f"xgboost-model-{ticker_slug}", type="model")
         artifact.add_file(model_path)
         run.log_artifact(artifact)
         print("Model artifact logged to W&B.")
@@ -99,15 +101,16 @@ def train(config: dict[str, Any]) -> str:
 
     Returns the W&B run ID so callers (including BDD steps) can link to the run.
     """
-    ticker = os.getenv("TICKER", "SPY")
+    ticker_symbol = os.getenv("TICKER", "SPY")
     lookback_years = int(os.getenv("LOOKBACK_YEARS", "5"))
     project = os.getenv("WANDB_PROJECT", "wandb-demo")
+    ticker = make_ticker(ticker_symbol)
 
-    print(f"Fetching {lookback_years}y of {ticker} data …")
+    print(f"Fetching {lookback_years}y of {ticker_symbol} data …")
     dataset = prepare_dataset(ticker, lookback_years)
 
     run_id = ""
-    with wandb.init(project=project, config=config) as run:
+    with wandb.init(project=project, config={**config, "ticker": ticker_symbol}) as run:
         run_id = run.id
         fit_and_log(
             run,

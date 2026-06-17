@@ -14,7 +14,6 @@ Environment variables consumed (all optional with defaults):
   WANDB_CI_USERNAME    – signup username        (default: ci-user)
   WANDB_CI_PASSWORD    – signup password        (default: CI_Password123!)
   WANDB_PROJECT        – W&B project name       (default: wandb-demo)
-  TICKER               – yfinance ticker symbol (default: SPY)
   LOOKBACK_YEARS       – years of history       (default: 5)
 """
 
@@ -31,7 +30,6 @@ CI_EMAIL = os.getenv("WANDB_CI_EMAIL", "ci@example.com")
 CI_USERNAME = os.getenv("WANDB_CI_USERNAME", "ci-user")
 CI_PASSWORD = os.getenv("WANDB_CI_PASSWORD", "CI_Password123!")
 WANDB_PROJECT = os.getenv("WANDB_PROJECT", "wandb-demo")
-TICKER = os.getenv("TICKER", "SPY")
 LOOKBACK_YEARS = os.getenv("LOOKBACK_YEARS", "5")
 AUTH_STATE_PATH = ".playwright-auth.json"
 
@@ -120,7 +118,6 @@ def write_env(api_key: str, entity: str) -> None:
         f"WANDB_API_KEY={api_key}\n"
         f"WANDB_ENTITY={entity}\n"
         f"WANDB_PROJECT={WANDB_PROJECT}\n"
-        f"TICKER={TICKER}\n"
         f"LOOKBACK_YEARS={LOOKBACK_YEARS}\n"
         f"PLAYWRIGHT_AUTH_STATE={AUTH_STATE_PATH}\n"
     )
