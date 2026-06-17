@@ -96,3 +96,21 @@ def test_prepare_dataset_returns_five_features(mock_ticker: None) -> None:
     result = prepare_dataset("SPY", lookback_years=1)
 
     assert result["X_train"].shape[1] == 5  # return_5d, 10d, 20d, rsi_14, volume_ratio
+
+
+def test_prepare_dataset_caches_result_for_same_arguments(
+    mocker: MockerFixture,
+) -> None:
+    ticker_mock = mocker.MagicMock()
+    ticker_mock.history.return_value = _make_ohlcv()
+    mocker.patch("wandb_demo.data.yf.Ticker", return_value=ticker_mock)
+
+    prepare_dataset.cache_clear()
+    try:
+        result1 = prepare_dataset("SPY", 1)
+        result2 = prepare_dataset("SPY", 1)
+    finally:
+        prepare_dataset.cache_clear()
+
+    assert ticker_mock.history.call_count == 1
+    np.testing.assert_array_equal(result1["X_train"], result2["X_train"])
