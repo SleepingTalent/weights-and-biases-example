@@ -33,7 +33,10 @@ def predict() -> None:
         except Exception:
             continue
     else:
-        print(f"No artifact '{artifact_name}' found. Run 'uv run task train' or 'uv run task sweep' first.")
+        print(
+            f"No artifact '{artifact_name}' found. "
+            "Run 'uv run task train' or 'uv run task sweep' first."
+        )
         return
 
     with tempfile.TemporaryDirectory() as tmpdir:

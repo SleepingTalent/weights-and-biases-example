@@ -89,7 +89,8 @@ def fit_and_log(
     with tempfile.TemporaryDirectory() as tmpdir:
         model_path = os.path.join(tmpdir, "model.json")
         clf.save_model(model_path)
-        ticker_slug = run.config.get("ticker", "unknown").lower().replace("=x", "").replace(".", "")
+        raw_ticker = str(getattr(run.config, "ticker", "unknown"))
+        ticker_slug = raw_ticker.lower().replace("=x", "").replace(".", "")
         artifact = wandb.Artifact(f"xgboost-model-{ticker_slug}", type="model")
         artifact.add_file(model_path)
         run.log_artifact(artifact)

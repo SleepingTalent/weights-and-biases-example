@@ -21,7 +21,10 @@ def promote_best_model() -> None:
     ticker_symbol = os.getenv("TICKER", "")
 
     if not ticker_symbol:
-        print("ERROR: TICKER env var is required. Use task promote_eurusd / promote_gbpusd / promote_spy.")
+        print(
+            "ERROR: TICKER env var is required. "
+            "Use task promote_eurusd / promote_gbpusd / promote_spy."
+        )
         sys.exit(1)
 
     slug = _ticker_slug(ticker_symbol)
